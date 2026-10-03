@@ -1,0 +1,6 @@
+{
+  "name": "Cook.PlayModeTests",
+  "references": ["Cook.Runtime"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}

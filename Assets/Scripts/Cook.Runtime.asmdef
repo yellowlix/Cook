@@ -1,7 +1,8 @@
 {
   "name": "Cook.Runtime",
   "references": [
-    "Unity.InputSystem"
+    "Unity.InputSystem",
+    "UnityEngine.UI"
   ],
   "noEngineReferences": false,
   "autoReferenced": true
