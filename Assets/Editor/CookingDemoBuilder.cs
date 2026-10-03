@@ -167,7 +167,7 @@ namespace Cook.Editor
             rect.anchoredPosition = position;
             rect.sizeDelta = size;
             Text text = target.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = fontSize;
             text.alignment = alignment;
             text.color = Color.white;
