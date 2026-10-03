@@ -3,5 +3,6 @@
   "references": [
     "Unity.InputSystem"
   ],
+  "noEngineReferences": false,
   "autoReferenced": true
 }
