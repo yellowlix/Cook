@@ -32,7 +32,7 @@
 |---|---|---|
 | 左 | 汤锅 | 搅一下汤锅、持续搅动汤锅 |
 | 中 | 案板 | 切一下菜、连续切菜 |
-| 右 | 炒锅 | 翻一下炒锅 |
+| 右 | 炒锅 | 翻一下炒锅、持续翻炒 |
 
 换位通过启用目标站位角色、禁用其他站位角色实现，不进行 Transform 平滑移动。
 
@@ -45,6 +45,7 @@
 | 搅一下汤锅 | 短按 | J 按下 1 次 | 按下即完成 |
 | 持续搅动汤锅 | 长按 | 累计按住 J 2 秒 | 松开或换位时保留进度 |
 | 翻一下炒锅 | 短按 | J 按下 1 次 | 按下即完成 |
+| 持续翻炒 | 长按 | 累计按住 J 2 秒 | 松开或换位时保留进度 |
 
 每种工序由一个 OperationDefinition ScriptableObject 描述：
 
@@ -54,7 +55,9 @@
 - RequiredAmount
 - StandardDuration
 - Icon
-- AnimatorTrigger
+- AnimationMode（OneShot 或 Sustained）
+- AnimatorStartTrigger
+- AnimatorStopTrigger（仅 Sustained 使用）
 
 第一阶段只使用工序全局默认值。以后出现真实内容需求时，再增加单个工序实例的目标覆盖。
 
@@ -90,10 +93,11 @@ CookingSession 对外接收：
 - 松开 J 或离开正确站位：长按进度暂停但保留。
 - 连续按中断或离开正确站位：已有点击进度保留。
 - 错误站位按 J：输入无效，工序进度不变，本轮计时继续，并产生 InvalidInput 事件。
+- 短按工序完成后，核心立即激活下一工序并允许输入；不等待一次性动画播完。
 
 ## 轮次计时与评价
 
-本轮计时从第一个工序进入可操作状态开始，到最后一个工序完成为止。
+本轮计时从第一个工序进入可操作状态开始，到最后一个工序完成为止。工序切换期间不暂停计时。
 
 默认标准时间：
 
@@ -101,6 +105,8 @@ StandardRoundTime =
 
 - 所有工序 StandardDuration 之和；
 - 加上相邻工序需要换位时的默认换位/反应时间。
+
+其中短按工序的 StandardDuration 表示玩家完成该输入的预期反应时间，不表示动画播放锁定时间；一次性动画时长不会强制延后下一工序。
 
 默认评价阈值：
 
@@ -170,7 +176,8 @@ RoundIntro → OperationActive：
 
 OperationActive → OperationActive：
 
-- 当前工序完成但本轮仍有后续工序。
+- 当前工序完成但本轮仍有后续工序；下一工序立即激活并接受输入。
+- 不增加 OperationResolving 或等待状态，Animator 播放进度不参与该转换。
 
 OperationActive → RoundResult：
 
@@ -220,6 +227,28 @@ CookingInputController：
 - 根据核心事件切换三个站位角色并控制 Animator。
 - 不包含连按、长按、评价或菜谱进度判定。
 
+### 动画策略
+
+玩法核心只发布工序开始、进度与完成事件，动画属于并行表现，不反向驱动玩法状态。
+
+一次性工序（OneShot）：
+
+- 切一下菜：`Cut_Once`
+- 搅一下汤锅：`Stir_Once`
+- 翻一下炒锅：`PanFlip_Once`
+- 动画片段关闭 Loop Time，触发后完整播放一次，再通过 Has Exit Time 返回 Idle。
+- 玩家按下 J 时工序在核心层立即完成，下一工序同帧激活并允许输入，不等待动画退出。
+
+持续工序（Sustained）：
+
+- 连续切菜：`CutRepeated_Enter → CutRepeated_Loop → CutRepeated_Exit`
+- 持续搅动汤锅：`StirHold_Enter → StirHold_Loop → StirHold_Exit`
+- 持续翻炒：`PanFlipHold_Enter → PanFlipHold_Loop → PanFlipHold_Exit`
+- 只有中间的 Loop 片段循环；Enter 和 Exit 均为一次性片段。
+- 工序开始时发送 AnimatorStartTrigger，工序完成时发送 AnimatorStopTrigger。
+
+核心层不读取 Animator 当前状态，也不通过 Animation Event 决定工序是否完成。立即换位时，旧站位角色可能被隐藏并截断其残余动画，这是第一阶段可接受的占位表现；后续如需保留残影或完整收势，应在表现层单独处理。
+
 CookingHud：
 
 - 显示当前轮的有序工序图标与完成勾选。
@@ -265,8 +294,10 @@ EditMode 核心测试：
 - 工序只能按固定顺序完成。
 - 错误站位输入无效。
 - 短按立即完成。
+- 一次性动画未播放完时，下一工序仍可立即接收输入。
 - 连续按逐次增加且不会重复 Start。
 - 长按随 Tick 增长。
+- 持续翻炒遵循长按累计与中断保留规则。
 - 中断、松开和换位保留工序进度。
 - 超过 Good 阈值产生 Miss。
 - 四档评价边界正确。
@@ -279,11 +310,12 @@ PlayMode 集成验证：
 - 强类型 Input Action 能驱动 CookingSession。
 - 左中右角色只显示一个。
 - Animator 收到正确 Trigger。
+- 一次性工序只触发非循环动画，持续工序正确触发开始与停止动画。
 - HUD 数据与核心状态一致。
 
 ## 第一阶段完成标准
 
-- 可以配置五种默认工序和至少一道固定轮次的演示菜谱。
+- 可以配置六种默认工序和至少一道固定轮次的演示菜谱。
 - 可以从第一轮完整游玩到提前成功或最终失败。
 - UI 能显示工序顺序、当前工序进度、菜谱总进度和评价。
 - 核心测试全部通过。
