@@ -50,10 +50,10 @@ namespace Cook.Editor
             Transform props = FindRequiredChild(kitchen, "CookingStove", "KitchenProps");
             props.name = "KitchenProps";
 
-            RenameDirectChild(props, "Cube", "Counter");
-            RenameDirectChild(props, "Cook1", "SoupPot");
-            RenameDirectChild(props, "Cook2", "CuttingBoard");
-            RenameDirectChild(props, "Cook3", "FryingPan");
+            RenameAnyDirectChild(props, "Counter", "Cube", "Stove", "Counter");
+            RenameAnyDirectChild(props, "SoupPot", "Cook1", "Stir", "SoupPot");
+            RenameAnyDirectChild(props, "CuttingBoard", "Cook2", "Cut", "CuttingBoard");
+            RenameAnyDirectChild(props, "FryingPan", "Cook3", "Fry", "FryingPan");
 
             StationPresentation[] stationPresentations =
             {
@@ -243,6 +243,18 @@ namespace Cook.Editor
             Transform child = parent.Find(oldName) ?? parent.Find(newName);
             if (child == null) throw new MissingReferenceException($"Cannot find {oldName} under {parent.name}.");
             child.name = newName;
+        }
+
+        private static void RenameAnyDirectChild(Transform parent, string newName, params string[] candidates)
+        {
+            foreach (string candidate in candidates)
+            {
+                Transform child = parent.Find(candidate);
+                if (child == null) continue;
+                child.name = newName;
+                return;
+            }
+            throw new MissingReferenceException($"Cannot find a source for {newName} under {parent.name}.");
         }
 
         private static Dictionary<CookingOperationType, ConfigOperationDefinition> CreateOperations()
