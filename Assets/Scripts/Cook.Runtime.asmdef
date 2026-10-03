@@ -1,0 +1,7 @@
+{
+  "name": "Cook.Runtime",
+  "references": [
+    "Unity.InputSystem"
+  ],
+  "autoReferenced": true
+}

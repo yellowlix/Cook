@@ -1,0 +1,7 @@
+{
+  "name": "Cook.Tests",
+  "references": [],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": true
+}
