@@ -15,6 +15,7 @@ MonoBehaviour:
   recipeID: 0
   recipeName: "\u9E21\u86CB"
   recipeDescription: 
-  runList: []
+  runList:
+  - operationList: []
   recipeSprite: {fileID: 0}
   recipeReword: 
