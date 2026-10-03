@@ -4,7 +4,11 @@ using Cook.Configuration;
 using Cook.Core;
 using UnityEditor;
 using UnityEditor.Animations;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using Cook.Presentation;
 using ConfigOperationDefinition = Cook.Configuration.OperationDefinition;
 using ConfigRecipeDefinition = Cook.Configuration.RecipeDefinition;
 
@@ -29,6 +33,216 @@ namespace Cook.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("Cooking demo content rebuilt.");
+        }
+
+        [MenuItem("Cook/Build Demo Scene")]
+        public static void BuildDemoScene()
+        {
+            GameObject sceneRoot = FindRequired("World", "CookSceneRoot");
+            sceneRoot.name = "CookSceneRoot";
+            RenameDirectChild(sceneRoot.transform, "Main Camera", "MainCamera");
+            RenameDirectChild(sceneRoot.transform, "Directional Light", "KeyLight");
+            RenameDirectChild(sceneRoot.transform, "Global Volume", "GlobalPostProcess");
+
+            Transform kitchen = FindRequiredChild(sceneRoot.transform, "Kitchen");
+            Transform gameplay = FindRequiredChild(kitchen, "CookingArea", "CookingGameplay");
+            gameplay.name = "CookingGameplay";
+            Transform props = FindRequiredChild(kitchen, "CookingStove", "KitchenProps");
+            props.name = "KitchenProps";
+
+            RenameDirectChild(props, "Cube", "Counter");
+            RenameDirectChild(props, "Cook1", "SoupPot");
+            RenameDirectChild(props, "Cook2", "CuttingBoard");
+            RenameDirectChild(props, "Cook3", "FryingPan");
+
+            StationPresentation[] stationPresentations =
+            {
+                ConfigureStation(gameplay, "LeftStation", "SoupPotStation", "SoupPotCharacter", CookingStation.SoupPot),
+                ConfigureStation(gameplay, "CenterStation", "CuttingBoardStation", "CuttingBoardCharacter", CookingStation.CuttingBoard),
+                ConfigureStation(gameplay, "RightStation", "FryingPanStation", "FryingPanCharacter", CookingStation.FryingPan)
+            };
+
+            RemovePracticeComponents(sceneRoot);
+            var presenter = GetOrAdd<CookingAnimationPresenter>(gameplay.gameObject);
+            presenter.ConfigureStations(stationPresentations);
+            EditorUtility.SetDirty(presenter);
+
+            CookingHud hud = CreateHud(sceneRoot.transform);
+            var controller = GetOrAdd<Cook.CookingInputController>(gameplay.gameObject);
+            var controllerData = new SerializedObject(controller);
+            controllerData.FindProperty("recipe").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<ConfigRecipeDefinition>($"{RecipesFolder}/DemoRecipe.asset");
+            controllerData.FindProperty("startingStation").enumValueIndex = (int)CookingStation.SoupPot;
+            controllerData.FindProperty("animationPresenter").objectReferenceValue = presenter;
+            controllerData.FindProperty("hud").objectReferenceValue = hud;
+            controllerData.FindProperty("roundResultDisplaySeconds").floatValue = 0.75f;
+            controllerData.ApplyModifiedPropertiesWithoutUndo();
+
+            stationPresentations[0].root.SetActive(true);
+            stationPresentations[1].root.SetActive(false);
+            stationPresentations[2].root.SetActive(false);
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+            Debug.Log("Cooking demo scene hierarchy and references rebuilt.");
+        }
+
+        private static StationPresentation ConfigureStation(
+            Transform gameplay,
+            string oldStationName,
+            string stationName,
+            string characterName,
+            CookingStation station)
+        {
+            Transform stationTransform = FindRequiredChild(gameplay, oldStationName, stationName);
+            stationTransform.name = stationName;
+            Transform character = FindRequiredChild(stationTransform, "Character", characterName);
+            character.name = characterName;
+            Transform visual = FindRequiredChild(character, "Capsule", "CharacterVisual");
+            visual.name = "CharacterVisual";
+            Animator animator = GetOrAdd<Animator>(character.gameObject);
+            animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
+                $"{ControllersFolder}/CookingCharacter.controller");
+            EditorUtility.SetDirty(animator);
+            return new StationPresentation { station = station, root = stationTransform.gameObject, animator = animator };
+        }
+
+        private static CookingHud CreateHud(Transform sceneRoot)
+        {
+            Transform existing = sceneRoot.Find("CookingHUD");
+            if (existing != null) Object.DestroyImmediate(existing.gameObject);
+
+            GameObject canvasObject = new GameObject(
+                "CookingHUD", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvasObject.transform.SetParent(sceneRoot, false);
+            Canvas canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            Text sequence = CreateText(canvasObject.transform, "OperationSequenceText", 34, TextAnchor.MiddleCenter,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(1200f, 70f));
+            Slider operationProgress = CreateSlider(canvasObject.transform, "OperationProgressSlider",
+                new Vector2(0.5f, 1f), new Vector2(0f, -125f), new Vector2(620f, 28f));
+            Slider recipeProgress = CreateSlider(canvasObject.transform, "RecipeProgressSlider",
+                new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(900f, 34f));
+            Text grade = CreateText(canvasObject.transform, "GradeText", 54, TextAnchor.MiddleCenter,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(600f, 90f));
+            Text result = CreateText(canvasObject.transform, "ResultText", 70, TextAnchor.MiddleCenter,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 110f));
+
+            CookingHud hud = canvasObject.AddComponent<CookingHud>();
+            var serialized = new SerializedObject(hud);
+            serialized.FindProperty("operationSequenceText").objectReferenceValue = sequence;
+            serialized.FindProperty("operationProgressSlider").objectReferenceValue = operationProgress;
+            serialized.FindProperty("recipeProgressSlider").objectReferenceValue = recipeProgress;
+            serialized.FindProperty("gradeText").objectReferenceValue = grade;
+            serialized.FindProperty("resultText").objectReferenceValue = result;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            if (Object.FindObjectOfType<EventSystem>() == null)
+            {
+                GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem));
+                eventSystem.transform.SetParent(sceneRoot, false);
+            }
+            return hud;
+        }
+
+        private static Text CreateText(
+            Transform parent,
+            string name,
+            int fontSize,
+            TextAnchor alignment,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            Vector2 position,
+            Vector2 size)
+        {
+            GameObject target = new GameObject(name, typeof(RectTransform), typeof(Text));
+            target.transform.SetParent(parent, false);
+            RectTransform rect = target.GetComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            Text text = target.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            text.fontSize = fontSize;
+            text.alignment = alignment;
+            text.color = Color.white;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.text = string.Empty;
+            return text;
+        }
+
+        private static Slider CreateSlider(
+            Transform parent,
+            string name,
+            Vector2 anchor,
+            Vector2 position,
+            Vector2 size)
+        {
+            GameObject target = DefaultControls.CreateSlider(new DefaultControls.Resources());
+            target.name = name;
+            target.transform.SetParent(parent, false);
+            RectTransform rect = target.GetComponent<RectTransform>();
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            Slider slider = target.GetComponent<Slider>();
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.value = 0f;
+            slider.interactable = false;
+            return slider;
+        }
+
+        private static void RemovePracticeComponents(GameObject root)
+        {
+            foreach (MonoBehaviour behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (behaviour == null) continue;
+                string typeName = behaviour.GetType().FullName;
+                if (typeName == "CookingController" || typeName == "InputController")
+                {
+                    Object.DestroyImmediate(behaviour);
+                }
+            }
+        }
+
+        private static T GetOrAdd<T>(GameObject target) where T : Component
+        {
+            T component = target.GetComponent<T>();
+            return component != null ? component : target.AddComponent<T>();
+        }
+
+        private static GameObject FindRequired(params string[] names)
+        {
+            foreach (string name in names)
+            {
+                GameObject result = GameObject.Find(name);
+                if (result != null) return result;
+            }
+            throw new MissingReferenceException($"Cannot find any of: {string.Join(", ", names)}");
+        }
+
+        private static Transform FindRequiredChild(Transform parent, params string[] names)
+        {
+            foreach (string name in names)
+            {
+                Transform result = parent.Find(name);
+                if (result != null) return result;
+            }
+            throw new MissingReferenceException($"Cannot find child under {parent.name}: {string.Join(", ", names)}");
+        }
+
+        private static void RenameDirectChild(Transform parent, string oldName, string newName)
+        {
+            Transform child = parent.Find(oldName) ?? parent.Find(newName);
+            if (child == null) throw new MissingReferenceException($"Cannot find {oldName} under {parent.name}.");
+            child.name = newName;
         }
 
         private static Dictionary<CookingOperationType, ConfigOperationDefinition> CreateOperations()
