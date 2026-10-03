@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dbe181f6a4b38e24baf7e6c1b5ac9fff, type: 3}
+  m_Name: DemoRecipe
+  m_EditorClassIdentifier: 
+  recipeId: demo-recipe
+  displayName: "\u6599\u7406\u7EC3\u4E60"
+  icon: {fileID: 0}
+  stationChangeAllowance: 0.25
+  rounds:
+  - operations:
+    - {fileID: 11400000, guid: 98329bd578a5ff948acb6b3096eeb367, type: 2}
+    - {fileID: 11400000, guid: fab198ade5d8f2f4f87c3c2b5c0b418c, type: 2}
+    useCustomTimeThresholds: 0
+    excellentTime: 0
+    greatTime: 0
+    goodTime: 0
+  - operations:
+    - {fileID: 11400000, guid: 113cda1c4f4d4c94a96d85c8cbe0449c, type: 2}
+    - {fileID: 11400000, guid: 5f2d75e2b32da364c9d3097fcca94bb9, type: 2}
+    - {fileID: 11400000, guid: a20bc2c6feba2a94089f5b9ed18f73ba, type: 2}
+    useCustomTimeThresholds: 0
+    excellentTime: 0
+    greatTime: 0
+    goodTime: 0
+  - operations:
+    - {fileID: 11400000, guid: 7ace688059c3aaf45883551554092a2d, type: 2}
+    - {fileID: 11400000, guid: fab198ade5d8f2f4f87c3c2b5c0b418c, type: 2}
+    - {fileID: 11400000, guid: 98329bd578a5ff948acb6b3096eeb367, type: 2}
+    useCustomTimeThresholds: 0
+    excellentTime: 0
+    greatTime: 0
+    goodTime: 0
