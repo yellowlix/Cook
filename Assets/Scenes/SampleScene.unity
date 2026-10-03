@@ -136,7 +136,7 @@ GameObject:
   - component: {fileID: 253427685}
   - component: {fileID: 253427684}
   m_Layer: 0
-  m_Name: Cook2
+  m_Name: Cut
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -565,7 +565,7 @@ GameObject:
   - component: {fileID: 513431216}
   - component: {fileID: 513431215}
   m_Layer: 0
-  m_Name: Cook3
+  m_Name: Fry
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1223,7 +1223,7 @@ GameObject:
   - component: {fileID: 1593224205}
   - component: {fileID: 1593224204}
   m_Layer: 0
-  m_Name: Cook1
+  m_Name: Stir
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1328,7 +1328,7 @@ GameObject:
   - component: {fileID: 1716525444}
   - component: {fileID: 1716525443}
   m_Layer: 0
-  m_Name: Cube
+  m_Name: Stove
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
