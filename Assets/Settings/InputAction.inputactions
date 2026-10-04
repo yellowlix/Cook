@@ -59,6 +59,39 @@
                     "isPartOfComposite": true
                 },
                 {
+                    "name": "1D Axis",
+                    "id": "c19c99af-c8e8-4dc1-8f5e-febd3185bb69",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ChangeStation",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "negative",
+                    "id": "dbed1ca5-ff42-4215-85eb-4d0909d39659",
+                    "path": "<Keyboard>/a",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ChangeStation",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "positive",
+                    "id": "ac8895d4-69d6-466e-9d09-a9031c442a8e",
+                    "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ChangeStation",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
                     "name": "",
                     "id": "185b97e6-d57a-4ddb-874c-264aaae1ca7e",
                     "path": "<Keyboard>/j",
