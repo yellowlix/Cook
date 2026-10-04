@@ -25,6 +25,8 @@ namespace Cook.Editor
         private const string FontsFolder = "Assets/Fonts";
         private const string HudFontSourcePath = FontsFolder + "/NotoSansSC-CookingSubset.ttf";
         private const string HudFontAssetPath = FontsFolder + "/NotoSansSC-CookingSubset SDF.asset";
+        private const string HudFontCharacters =
+            "切一下连续菜搅持续动翻炒完成失败料理练习✓> []ExcellentGreatGoodMiss";
 
         [MenuItem("Cook/Build Demo Content")]
         public static void BuildDemoContent()
@@ -525,6 +527,10 @@ namespace Cook.Editor
             if (fontAsset.material != null && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(fontAsset.material)))
             {
                 AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+            }
+            if (!fontAsset.TryAddCharacters(HudFontCharacters, out string missingCharacters))
+            {
+                throw new UnityException($"TMP HUD font source is missing: {missingCharacters}");
             }
             EditorUtility.SetDirty(fontAsset);
         }
