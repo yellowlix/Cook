@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using Cook.Core;
 using TMPro;
@@ -16,7 +17,31 @@ namespace Cook.Presentation
         [SerializeField] private Image recipeProgressFill;
         [SerializeField] private TMP_Text gradeText;
         [SerializeField] private TMP_Text resultText;
+        [SerializeField] private TMP_Text roundCountdownText;
+        [SerializeField] private Button startButton;
+        [SerializeField] private Button restartButton;
         private CoreCookingSession session;
+
+        public event Action StartRequested;
+        public event Action RestartRequested;
+
+        private void Awake()
+        {
+            if (startButton != null) startButton.onClick.AddListener(NotifyStartRequested);
+            if (restartButton != null) restartButton.onClick.AddListener(NotifyRestartRequested);
+        }
+
+        public void ShowReady()
+        {
+            SetVisible(startButton, true);
+            SetVisible(restartButton, false);
+            SetVisible(operationSequenceText, false);
+            SetVisible(operationProgressBar, false);
+            SetVisible(recipeProgressFill != null ? recipeProgressFill.transform.parent.gameObject : null, false);
+            SetVisible(gradeText, false);
+            SetVisible(resultText, false);
+            SetVisible(roundCountdownText, false);
+        }
 
         public void Bind(CoreCookingSession value)
         {
@@ -29,8 +54,17 @@ namespace Cook.Presentation
             session.RecipeProgressChanged += OnRecipeProgressChanged;
             session.RecipeSucceeded += OnRecipeSucceeded;
             session.RecipeFailed += OnRecipeFailed;
+            session.StateChanged += OnStateChanged;
             SetText(gradeText, string.Empty);
             SetText(resultText, string.Empty);
+            SetProgress(operationProgressFill, 0f);
+            SetProgress(recipeProgressFill, 0f);
+            SetVisible(startButton, false);
+            SetVisible(restartButton, true);
+            SetVisible(operationSequenceText, true);
+            SetVisible(recipeProgressFill != null ? recipeProgressFill.transform.parent.gameObject : null, true);
+            SetVisible(gradeText, true);
+            SetVisible(resultText, true);
         }
 
         public void Unbind()
@@ -42,10 +76,35 @@ namespace Cook.Presentation
             session.RecipeProgressChanged -= OnRecipeProgressChanged;
             session.RecipeSucceeded -= OnRecipeSucceeded;
             session.RecipeFailed -= OnRecipeFailed;
+            session.StateChanged -= OnStateChanged;
             session = null;
         }
 
-        private void OnDestroy() => Unbind();
+        private void OnDestroy()
+        {
+            Unbind();
+            if (startButton != null) startButton.onClick.RemoveListener(NotifyStartRequested);
+            if (restartButton != null) restartButton.onClick.RemoveListener(NotifyRestartRequested);
+        }
+
+        private void Update()
+        {
+            if (session?.State != CookingSessionState.OperationActive || session.CurrentRound == null) return;
+            float remaining = Mathf.Max(0f, session.CurrentRound.GoodTime - session.RoundElapsedTime);
+            SetText(roundCountdownText, $"剩余 {remaining:0.0}s");
+        }
+
+        private void NotifyStartRequested() => StartRequested?.Invoke();
+        private void NotifyRestartRequested() => RestartRequested?.Invoke();
+
+        private void OnStateChanged(CookingSessionState state)
+        {
+            SetVisible(roundCountdownText, state == CookingSessionState.OperationActive);
+            if (state == CookingSessionState.OperationActive)
+            {
+                SetText(roundCountdownText, $"剩余 {session.CurrentRound.GoodTime:0.0}s");
+            }
+        }
 
         private void OnOperationStarted(OperationRuntimeData operation, int currentIndex, int operationCount)
         {
@@ -104,6 +163,16 @@ namespace Cook.Presentation
         private static void SetText(TMP_Text target, string value)
         {
             if (target != null) target.text = value;
+        }
+
+        private static void SetVisible(Component target, bool visible)
+        {
+            if (target != null) target.gameObject.SetActive(visible);
+        }
+
+        private static void SetVisible(GameObject target, bool visible)
+        {
+            if (target != null) target.SetActive(visible);
         }
 
         private static void SetProgress(Image image, float progress)

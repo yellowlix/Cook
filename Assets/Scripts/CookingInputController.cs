@@ -18,6 +18,7 @@ namespace Cook
         [SerializeField, Min(0f)] private float roundResultDisplaySeconds = 0.75f;
 
         private CookInputActions inputs;
+        private RecipeRuntimeData runtimeRecipe;
         private CoreCookingSession session;
         private float resultElapsed;
 
@@ -45,17 +46,35 @@ namespace Cook
                 return;
             }
 
-            if (!recipe.TryBuildRuntime(out RecipeRuntimeData runtime, out string error))
+            if (!recipe.TryBuildRuntime(out runtimeRecipe, out string error))
             {
                 Debug.LogError($"Cannot start cooking: {error}", this);
                 enabled = false;
                 return;
             }
 
+            if (hud == null)
+            {
+                Debug.LogError("Cannot start cooking: HUD is not assigned", this);
+                enabled = false;
+                return;
+            }
+
+            hud.StartRequested += StartRun;
+            hud.RestartRequested += StartRun;
+            hud.ShowReady();
+        }
+
+        private void StartRun()
+        {
+            if (runtimeRecipe == null) return;
+            animationPresenter?.Unbind();
+            hud?.Unbind();
             session = new CoreCookingSession();
             animationPresenter?.Bind(session);
             hud?.Bind(session);
-            session.StartRecipe(runtime, startingStation);
+            resultElapsed = 0f;
+            session.StartRecipe(runtimeRecipe, startingStation);
         }
 
         private void Update()
@@ -86,6 +105,11 @@ namespace Cook
 
         private void OnDestroy()
         {
+            if (hud != null)
+            {
+                hud.StartRequested -= StartRun;
+                hud.RestartRequested -= StartRun;
+            }
             animationPresenter?.Unbind();
             hud?.Unbind();
             inputs?.Dispose();

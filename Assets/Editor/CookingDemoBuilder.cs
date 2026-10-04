@@ -27,7 +27,7 @@ namespace Cook.Editor
         private const string HudFontAssetPath = FontsFolder + "/NotoSansSC-CookingSubset SDF.asset";
         private const string ProgressFillSpritePath = "Assets/UI/ProgressFillPlaceholder.png";
         private const string HudFontCharacters =
-            "切一下连续菜搅持续动翻炒完成失败料理练习✓> []ExcellentGreatGoodMiss";
+            "切一下连续菜搅持续动翻炒完成失败料理练习开始重新剩余✓> []0123456789.sExcellentGreatGoodMiss";
 
         [MenuItem("Cook/Build Demo Content")]
         public static void BuildDemoContent()
@@ -143,6 +143,14 @@ namespace Cook.Editor
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(600f, 90f));
             TMP_Text result = CreateText(canvasObject.transform, "ResultText", 70, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 110f));
+            TMP_Text countdown = CreateText(canvasObject.transform, "RoundCountdownText", 42, TextAlignmentOptions.Right,
+                Vector2.one, Vector2.one, new Vector2(-180f, -65f), new Vector2(300f, 65f));
+            Button startButton = CreateButton(canvasObject.transform, "StartButton", "开始",
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -150f), new Color(0.31f, 0.67f, 0.72f, 1f));
+            Button restartButton = CreateButton(canvasObject.transform, "RestartButton", "重新开始",
+                new Vector2(1f, 0f), new Vector2(-165f, 70f), new Color(0.34f, 0.27f, 0.23f, 1f));
+            startButton.gameObject.SetActive(false);
+            restartButton.gameObject.SetActive(false);
 
             CookingHud hud = canvasObject.AddComponent<CookingHud>();
             var serialized = new SerializedObject(hud);
@@ -152,6 +160,9 @@ namespace Cook.Editor
             serialized.FindProperty("recipeProgressFill").objectReferenceValue = recipeProgress;
             serialized.FindProperty("gradeText").objectReferenceValue = grade;
             serialized.FindProperty("resultText").objectReferenceValue = result;
+            serialized.FindProperty("roundCountdownText").objectReferenceValue = countdown;
+            serialized.FindProperty("startButton").objectReferenceValue = startButton;
+            serialized.FindProperty("restartButton").objectReferenceValue = restartButton;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             return hud;
@@ -186,6 +197,28 @@ namespace Cook.Editor
             text.enableWordWrapping = false;
             text.text = string.Empty;
             return text;
+        }
+
+        private static Button CreateButton(
+            Transform parent, string name, string label, Vector2 anchor, Vector2 position, Color color)
+        {
+            GameObject target = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            target.transform.SetParent(parent, false);
+            RectTransform rect = target.GetComponent<RectTransform>();
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(260f, 76f);
+            Image image = target.GetComponent<Image>();
+            image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            image.type = Image.Type.Sliced;
+            image.color = color;
+
+            TMP_Text text = CreateText(target.transform, "Label", 38, TextAlignmentOptions.Center,
+                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            text.text = label;
+            text.raycastTarget = false;
+            return target.GetComponent<Button>();
         }
 
         private static Image CreateProgressBar(
