@@ -17,7 +17,7 @@ MonoBehaviour:
   station: 1
   inputMode: 1
   requiredAmount: 6
-  standardDuration: 2.5
+  standardDuration: 5
   icon: {fileID: 0}
   animationMode: 1
   animatorStartTrigger: ChopRepeatedStart

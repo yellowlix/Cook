@@ -17,7 +17,7 @@ MonoBehaviour:
   station: 2
   inputMode: 0
   requiredAmount: 1
-  standardDuration: 0.6
+  standardDuration: 1
   icon: {fileID: 0}
   animationMode: 0
   animatorStartTrigger: PanFlipOnce

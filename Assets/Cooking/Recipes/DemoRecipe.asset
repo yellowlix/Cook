@@ -15,7 +15,7 @@ MonoBehaviour:
   recipeId: demo-recipe
   displayName: "\u6599\u7406\u7EC3\u4E60"
   icon: {fileID: 0}
-  stationChangeAllowance: 0.25
+  stationChangeAllowance: 0.5
   rounds:
   - operations:
     - {fileID: 11400000, guid: 98329bd578a5ff948acb6b3096eeb367, type: 2}
