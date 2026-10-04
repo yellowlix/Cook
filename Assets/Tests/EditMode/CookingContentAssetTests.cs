@@ -4,7 +4,8 @@ using UnityEditor.Animations;
 
 public sealed class CookingContentAssetTests
 {
-    private const string ControllerPath = "Assets/Animations/Controllers/CookingCharacter.controller";
+    private const string ControllerPath =
+        "Assets/Animations/Controllers/CookingCharacterGenerated.controller";
 
     [Test]
     public void AnimatorControllerAsset_PersistsExpectedGraph()

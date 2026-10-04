@@ -22,6 +22,7 @@ namespace Cook.Editor
         private const string RecipesFolder = "Assets/Cooking/Recipes";
         private const string ClipsFolder = "Assets/Animations/Clips";
         private const string ControllersFolder = "Assets/Animations/Controllers";
+        private const string ControllerAssetPath = ControllersFolder + "/CookingCharacterGenerated.controller";
         private const string FontsFolder = "Assets/Fonts";
         private const string HudFontSourcePath = FontsFolder + "/NotoSansSC-CookingSubset.ttf";
         private const string HudFontAssetPath = FontsFolder + "/NotoSansSC-CookingSubset SDF.asset";
@@ -107,7 +108,7 @@ namespace Cook.Editor
             visual.name = "CharacterVisual";
             Animator animator = GetOrAdd<Animator>(character.gameObject);
             animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
-                $"{ControllersFolder}/CookingCharacter.controller");
+                ControllerAssetPath);
             EditorUtility.SetDirty(animator);
             return new StationPresentation { station = station, root = stationTransform.gameObject, animator = animator };
         }
@@ -410,7 +411,7 @@ namespace Cook.Editor
 
         private static void CreateAnimatorController(IReadOnlyDictionary<string, AnimationClip> clips)
         {
-            string path = $"{ControllersFolder}/CookingCharacter.controller";
+            string path = ControllerAssetPath;
             AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
             if (controller == null)
             {
