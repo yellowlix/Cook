@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!21 &-6002489520715643192
+--- !u!21 &-1141199262992865385
 Material:
   serializedVersion: 8
   m_ObjectHideFlags: 0
@@ -24,7 +24,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MainTex:
-        m_Texture: {fileID: 1543751323975838326}
+        m_Texture: {fileID: 801823156022935951}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -79,7 +79,7 @@ MonoBehaviour:
   m_Name: NotoSansSC-CookingSubset SDF
   m_EditorClassIdentifier: 
   hashCode: -1930131113
-  material: {fileID: -6002489520715643192}
+  material: {fileID: -1141199262992865385}
   materialHashCode: -946564841
   m_Version: 1.1.0
   m_SourceFontFileGUID: 8daa92eacdfaf554fa9224c6329eb6f5
@@ -872,7 +872,7 @@ MonoBehaviour:
     m_GlyphIndex: 64
     m_Scale: 1
   m_AtlasTextures:
-  - {fileID: 1543751323975838326}
+  - {fileID: 801823156022935951}
   m_AtlasTextureIndex: 0
   m_IsMultiAtlasTexturesEnabled: 1
   m_ClearDynamicDataOnBuild: 0
@@ -1249,7 +1249,7 @@ MonoBehaviour:
   boldSpacing: 7
   italicStyle: 35
   tabSize: 10
---- !u!28 &1543751323975838326
+--- !u!28 &801823156022935951
 Texture2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
