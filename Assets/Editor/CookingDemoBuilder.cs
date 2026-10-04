@@ -6,7 +6,6 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 using Cook.Presentation;
@@ -130,9 +129,9 @@ namespace Cook.Editor
 
             TMP_Text sequence = CreateText(canvasObject.transform, "OperationSequenceText", 34, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(1200f, 70f));
-            Slider operationProgress = CreateSlider(canvasObject.transform, "OperationProgressSlider",
+            Image operationProgress = CreateProgressImage(canvasObject.transform, "OperationProgressImage",
                 new Vector2(0.5f, 1f), new Vector2(0f, -125f), new Vector2(620f, 28f));
-            Slider recipeProgress = CreateSlider(canvasObject.transform, "RecipeProgressSlider",
+            Image recipeProgress = CreateProgressImage(canvasObject.transform, "RecipeProgressImage",
                 new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(900f, 34f));
             TMP_Text grade = CreateText(canvasObject.transform, "GradeText", 54, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(600f, 90f));
@@ -142,17 +141,12 @@ namespace Cook.Editor
             CookingHud hud = canvasObject.AddComponent<CookingHud>();
             var serialized = new SerializedObject(hud);
             serialized.FindProperty("operationSequenceText").objectReferenceValue = sequence;
-            serialized.FindProperty("operationProgressSlider").objectReferenceValue = operationProgress;
-            serialized.FindProperty("recipeProgressSlider").objectReferenceValue = recipeProgress;
+            serialized.FindProperty("operationProgressImage").objectReferenceValue = operationProgress;
+            serialized.FindProperty("recipeProgressImage").objectReferenceValue = recipeProgress;
             serialized.FindProperty("gradeText").objectReferenceValue = grade;
             serialized.FindProperty("resultText").objectReferenceValue = result;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
-            if (Object.FindObjectOfType<EventSystem>() == null)
-            {
-                GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem));
-                eventSystem.transform.SetParent(sceneRoot, false);
-            }
             return hud;
         }
 
@@ -187,27 +181,26 @@ namespace Cook.Editor
             return text;
         }
 
-        private static Slider CreateSlider(
+        private static Image CreateProgressImage(
             Transform parent,
             string name,
             Vector2 anchor,
             Vector2 position,
             Vector2 size)
         {
-            GameObject target = DefaultControls.CreateSlider(new DefaultControls.Resources());
-            target.name = name;
+            GameObject target = new GameObject(name, typeof(RectTransform), typeof(Image));
             target.transform.SetParent(parent, false);
             RectTransform rect = target.GetComponent<RectTransform>();
             rect.anchorMin = anchor;
             rect.anchorMax = anchor;
-            rect.anchoredPosition = position;
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.anchoredPosition = position - new Vector2(size.x * 0.5f, 0f);
             rect.sizeDelta = size;
-            Slider slider = target.GetComponent<Slider>();
-            slider.minValue = 0f;
-            slider.maxValue = 1f;
-            slider.value = 0f;
-            slider.interactable = false;
-            return slider;
+            rect.localScale = new Vector3(0f, 1f, 1f);
+            Image image = target.GetComponent<Image>();
+            image.color = new Color(0.32f, 0.86f, 0.64f, 1f);
+            image.raycastTarget = false;
+            return image;
         }
 
         private static T GetOrAdd<T>(GameObject target) where T : Component

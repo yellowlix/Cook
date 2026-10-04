@@ -11,8 +11,8 @@ namespace Cook.Presentation
     public sealed class CookingHud : MonoBehaviour
     {
         [SerializeField] private TMP_Text operationSequenceText;
-        [SerializeField] private Slider operationProgressSlider;
-        [SerializeField] private Slider recipeProgressSlider;
+        [SerializeField] private Image operationProgressImage;
+        [SerializeField] private Image recipeProgressImage;
         [SerializeField] private TMP_Text gradeText;
         [SerializeField] private TMP_Text resultText;
         private CoreCookingSession session;
@@ -48,10 +48,10 @@ namespace Cook.Presentation
 
         private void OnOperationStarted(OperationRuntimeData operation, int currentIndex, int operationCount)
         {
-            if (operationProgressSlider != null)
+            if (operationProgressImage != null)
             {
-                operationProgressSlider.gameObject.SetActive(operation.InputMode != CookingInputMode.ShortPress);
-                operationProgressSlider.value = 0f;
+                operationProgressImage.gameObject.SetActive(operation.InputMode != CookingInputMode.ShortPress);
+                SetProgress(operationProgressImage, 0f);
             }
             SetText(gradeText, string.Empty);
             RenderOperationSequence(currentIndex);
@@ -59,12 +59,12 @@ namespace Cook.Presentation
 
         private void OnOperationProgressChanged(float progress)
         {
-            if (operationProgressSlider != null) operationProgressSlider.value = progress;
+            SetProgress(operationProgressImage, progress);
         }
 
         private void OnRecipeProgressChanged(float progress)
         {
-            if (recipeProgressSlider != null) recipeProgressSlider.value = progress;
+            SetProgress(recipeProgressImage, progress);
         }
 
         private void OnRoundEvaluated(CookingGrade grade) => SetText(gradeText, grade.ToString());
@@ -103,6 +103,12 @@ namespace Cook.Presentation
         private static void SetText(TMP_Text target, string value)
         {
             if (target != null) target.text = value;
+        }
+
+        private static void SetProgress(Image image, float progress)
+        {
+            if (image == null) return;
+            image.rectTransform.localScale = new Vector3(Mathf.Clamp01(progress), 1f, 1f);
         }
     }
 }

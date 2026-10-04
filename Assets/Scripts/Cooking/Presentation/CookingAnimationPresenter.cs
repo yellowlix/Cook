@@ -56,6 +56,12 @@ namespace Cook.Presentation
                     presentation.root.SetActive(presentation.station == activeStation);
                 }
             }
+
+            OperationRuntimeData operation = session?.CurrentOperation;
+            if (session?.State == CookingSessionState.OperationActive && operation?.Station == activeStation)
+            {
+                SetTrigger(activeStation, operation.AnimatorStartTrigger);
+            }
         }
 
         private void OnOperationStarted(OperationRuntimeData operation, int index, int count)
@@ -76,7 +82,9 @@ namespace Cook.Presentation
             if (string.IsNullOrWhiteSpace(trigger)) return;
             foreach (StationPresentation presentation in stations)
             {
-                if (presentation != null && presentation.station == station && presentation.animator != null)
+                if (presentation != null && presentation.station == station &&
+                    presentation.animator != null && presentation.animator.isActiveAndEnabled &&
+                    presentation.animator.runtimeAnimatorController != null)
                 {
                     presentation.animator.SetTrigger(trigger);
                     return;
