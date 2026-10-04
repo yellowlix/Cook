@@ -22,11 +22,15 @@ namespace Cook.Editor
         private const string RecipesFolder = "Assets/Cooking/Recipes";
         private const string ClipsFolder = "Assets/Animations/Clips";
         private const string ControllersFolder = "Assets/Animations/Controllers";
+        private const string FontsFolder = "Assets/Fonts";
+        private const string HudFontSourcePath = FontsFolder + "/NotoSansSC-CookingSubset.ttf";
+        private const string HudFontAssetPath = FontsFolder + "/NotoSansSC-CookingSubset SDF.asset";
 
         [MenuItem("Cook/Build Demo Content")]
         public static void BuildDemoContent()
         {
             EnsureFolders();
+            CreateHudFontAsset();
             Dictionary<CookingOperationType, ConfigOperationDefinition> operations = CreateOperations();
             CreateRecipe(operations);
             Dictionary<string, AnimationClip> clips = CreateClips();
@@ -167,6 +171,11 @@ namespace Cook.Editor
             rect.anchoredPosition = position;
             rect.sizeDelta = size;
             TMP_Text text = target.GetComponent<TMP_Text>();
+            text.font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(HudFontAssetPath);
+            if (text.font == null)
+            {
+                throw new MissingReferenceException($"Missing TMP HUD font asset: {HudFontAssetPath}");
+            }
             text.fontSize = fontSize;
             text.alignment = alignment;
             text.color = Color.white;
@@ -490,6 +499,34 @@ namespace Cook.Editor
             EnsureFolder("Assets", "Animations");
             EnsureFolder("Assets/Animations", "Clips");
             EnsureFolder("Assets/Animations", "Controllers");
+            EnsureFolder("Assets", "Fonts");
+        }
+
+        private static void CreateHudFontAsset()
+        {
+            Font sourceFont = AssetDatabase.LoadAssetAtPath<Font>(HudFontSourcePath);
+            if (sourceFont == null)
+            {
+                throw new MissingReferenceException($"Missing HUD font source: {HudFontSourcePath}");
+            }
+
+            DeleteIfExists(HudFontAssetPath);
+            TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(sourceFont);
+            fontAsset.name = "NotoSansSC Cooking Subset SDF";
+            AssetDatabase.CreateAsset(fontAsset, HudFontAssetPath);
+
+            foreach (Texture2D atlasTexture in fontAsset.atlasTextures)
+            {
+                if (atlasTexture != null && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(atlasTexture)))
+                {
+                    AssetDatabase.AddObjectToAsset(atlasTexture, fontAsset);
+                }
+            }
+            if (fontAsset.material != null && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(fontAsset.material)))
+            {
+                AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+            }
+            EditorUtility.SetDirty(fontAsset);
         }
 
         private static void EnsureFolder(string parent, string name)
