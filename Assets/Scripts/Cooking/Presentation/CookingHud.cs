@@ -11,8 +11,9 @@ namespace Cook.Presentation
     public sealed class CookingHud : MonoBehaviour
     {
         [SerializeField] private TMP_Text operationSequenceText;
-        [SerializeField] private Image operationProgressImage;
-        [SerializeField] private Image recipeProgressImage;
+        [SerializeField] private GameObject operationProgressBar;
+        [SerializeField] private Image operationProgressFill;
+        [SerializeField] private Image recipeProgressFill;
         [SerializeField] private TMP_Text gradeText;
         [SerializeField] private TMP_Text resultText;
         private CoreCookingSession session;
@@ -48,23 +49,23 @@ namespace Cook.Presentation
 
         private void OnOperationStarted(OperationRuntimeData operation, int currentIndex, int operationCount)
         {
-            if (operationProgressImage != null)
+            if (operationProgressBar != null)
             {
-                operationProgressImage.gameObject.SetActive(operation.InputMode != CookingInputMode.ShortPress);
-                SetProgress(operationProgressImage, 0f);
+                operationProgressBar.SetActive(operation.InputMode != CookingInputMode.ShortPress);
             }
+            SetProgress(operationProgressFill, 0f);
             SetText(gradeText, string.Empty);
             RenderOperationSequence(currentIndex);
         }
 
         private void OnOperationProgressChanged(float progress)
         {
-            SetProgress(operationProgressImage, progress);
+            SetProgress(operationProgressFill, progress);
         }
 
         private void OnRecipeProgressChanged(float progress)
         {
-            SetProgress(recipeProgressImage, progress);
+            SetProgress(recipeProgressFill, progress);
         }
 
         private void OnRoundEvaluated(CookingGrade grade) => SetText(gradeText, grade.ToString());
@@ -108,7 +109,7 @@ namespace Cook.Presentation
         private static void SetProgress(Image image, float progress)
         {
             if (image == null) return;
-            image.rectTransform.localScale = new Vector3(Mathf.Clamp01(progress), 1f, 1f);
+            image.fillAmount = Mathf.Clamp01(progress);
         }
     }
 }

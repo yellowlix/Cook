@@ -25,6 +25,7 @@ namespace Cook.Editor
         private const string FontsFolder = "Assets/Fonts";
         private const string HudFontSourcePath = FontsFolder + "/NotoSansSC-CookingSubset.ttf";
         private const string HudFontAssetPath = FontsFolder + "/NotoSansSC-CookingSubset SDF.asset";
+        private const string ProgressFillSpritePath = "Assets/UI/ProgressFillPlaceholder.png";
         private const string HudFontCharacters =
             "切一下连续菜搅持续动翻炒完成失败料理练习✓> []ExcellentGreatGoodMiss";
 
@@ -115,7 +116,12 @@ namespace Cook.Editor
         private static CookingHud CreateHud(Transform sceneRoot)
         {
             Transform existing = sceneRoot.Find("CookingHUD");
-            if (existing != null) Object.DestroyImmediate(existing.gameObject);
+            if (existing != null)
+            {
+                Transform eventSystem = existing.Find("EventSystem");
+                if (eventSystem != null) eventSystem.SetParent(sceneRoot, false);
+                Object.DestroyImmediate(existing.gameObject);
+            }
 
             GameObject canvasObject = new GameObject(
                 "CookingHUD", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -129,10 +135,10 @@ namespace Cook.Editor
 
             TMP_Text sequence = CreateText(canvasObject.transform, "OperationSequenceText", 34, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(1200f, 70f));
-            Image operationProgress = CreateProgressImage(canvasObject.transform, "OperationProgressImage",
+            Image operationProgress = CreateProgressBar(canvasObject.transform, "OperationProgressBar",
                 new Vector2(0.5f, 1f), new Vector2(0f, -125f), new Vector2(620f, 28f));
-            Image recipeProgress = CreateProgressImage(canvasObject.transform, "RecipeProgressImage",
-                new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(900f, 34f));
+            Image recipeProgress = CreateProgressBar(canvasObject.transform, "RecipeProgressBar",
+                new Vector2(0f, 0f), new Vector2(370f, 70f), new Vector2(620f, 34f));
             TMP_Text grade = CreateText(canvasObject.transform, "GradeText", 54, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(600f, 90f));
             TMP_Text result = CreateText(canvasObject.transform, "ResultText", 70, TextAlignmentOptions.Center,
@@ -141,8 +147,9 @@ namespace Cook.Editor
             CookingHud hud = canvasObject.AddComponent<CookingHud>();
             var serialized = new SerializedObject(hud);
             serialized.FindProperty("operationSequenceText").objectReferenceValue = sequence;
-            serialized.FindProperty("operationProgressImage").objectReferenceValue = operationProgress;
-            serialized.FindProperty("recipeProgressImage").objectReferenceValue = recipeProgress;
+            serialized.FindProperty("operationProgressBar").objectReferenceValue = operationProgress.transform.parent.gameObject;
+            serialized.FindProperty("operationProgressFill").objectReferenceValue = operationProgress;
+            serialized.FindProperty("recipeProgressFill").objectReferenceValue = recipeProgress;
             serialized.FindProperty("gradeText").objectReferenceValue = grade;
             serialized.FindProperty("resultText").objectReferenceValue = result;
             serialized.ApplyModifiedPropertiesWithoutUndo();
@@ -181,26 +188,49 @@ namespace Cook.Editor
             return text;
         }
 
-        private static Image CreateProgressImage(
+        private static Image CreateProgressBar(
             Transform parent,
             string name,
             Vector2 anchor,
             Vector2 position,
             Vector2 size)
         {
-            GameObject target = new GameObject(name, typeof(RectTransform), typeof(Image));
-            target.transform.SetParent(parent, false);
-            RectTransform rect = target.GetComponent<RectTransform>();
+            Sprite backgroundSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            Sprite fillSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ProgressFillSpritePath);
+            if (backgroundSprite == null || fillSprite == null)
+            {
+                throw new MissingReferenceException("Missing progress bar placeholder sprites.");
+            }
+
+            GameObject backgroundObject = new GameObject(name, typeof(RectTransform), typeof(Image));
+            backgroundObject.transform.SetParent(parent, false);
+            RectTransform rect = backgroundObject.GetComponent<RectTransform>();
             rect.anchorMin = anchor;
             rect.anchorMax = anchor;
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.anchoredPosition = position - new Vector2(size.x * 0.5f, 0f);
+            rect.anchoredPosition = position;
             rect.sizeDelta = size;
-            rect.localScale = new Vector3(0f, 1f, 1f);
-            Image image = target.GetComponent<Image>();
-            image.color = new Color(0.32f, 0.86f, 0.64f, 1f);
-            image.raycastTarget = false;
-            return image;
+            Image background = backgroundObject.GetComponent<Image>();
+            background.sprite = backgroundSprite;
+            background.type = Image.Type.Sliced;
+            background.color = new Color(0.18f, 0.14f, 0.12f, 0.92f);
+            background.raycastTarget = false;
+
+            GameObject fillObject = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            fillObject.transform.SetParent(backgroundObject.transform, false);
+            RectTransform fillRect = fillObject.GetComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.offsetMin = new Vector2(4f, 4f);
+            fillRect.offsetMax = new Vector2(-4f, -4f);
+            Image fill = fillObject.GetComponent<Image>();
+            fill.sprite = fillSprite;
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillOrigin = (int)Image.OriginHorizontal.Left;
+            fill.fillAmount = 0f;
+            fill.color = new Color(0.38f, 0.84f, 0.89f, 1f);
+            fill.raycastTarget = false;
+            return fill;
         }
 
         private static T GetOrAdd<T>(GameObject target) where T : Component
