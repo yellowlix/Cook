@@ -445,6 +445,18 @@ namespace Cook.Editor
             }
             AssetDatabase.SaveAssetIfDirty(controller);
             AssetDatabase.ForceReserializeAssets(new[] { path });
+            AssetDatabase.ImportAsset(
+                path,
+                ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+
+            AnimatorController importedController = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            if (importedController == null ||
+                importedController.parameters.Length != 9 ||
+                importedController.layers.Length != 1 ||
+                importedController.layers[0].stateMachine.states.Length != 13)
+            {
+                throw new UnityException("Cooking Animator Controller did not persist its generated graph.");
+            }
         }
 
         private static void ClearAnimatorController(AnimatorController controller)
