@@ -20,6 +20,7 @@ namespace Cook.Presentation
     {
         [SerializeField] private StationPresentation[] stations = Array.Empty<StationPresentation>();
         private CoreCookingSession session;
+        private OperationRuntimeData sustainedOperation;
 
         public void ConfigureStations(StationPresentation[] value)
         {
@@ -32,16 +33,21 @@ namespace Cook.Presentation
             this.session = session;
             if (session == null) return;
             session.StationChanged += OnStationChanged;
-            session.OperationStarted += OnOperationStarted;
+            session.OperationInputStarted += OnOperationInputStarted;
+            session.OperationInputStopped += OnOperationInputStopped;
             session.OperationCompleted += OnOperationCompleted;
+            session.StateChanged += OnStateChanged;
         }
 
         public void Unbind()
         {
             if (session == null) return;
+            StopSustained();
             session.StationChanged -= OnStationChanged;
-            session.OperationStarted -= OnOperationStarted;
+            session.OperationInputStarted -= OnOperationInputStarted;
+            session.OperationInputStopped -= OnOperationInputStopped;
             session.OperationCompleted -= OnOperationCompleted;
+            session.StateChanged -= OnStateChanged;
             session = null;
         }
 
@@ -49,6 +55,11 @@ namespace Cook.Presentation
 
         private void OnStationChanged(CookingStation activeStation)
         {
+            if (sustainedOperation != null && sustainedOperation.Station != activeStation)
+            {
+                StopSustained();
+            }
+
             foreach (StationPresentation presentation in stations)
             {
                 if (presentation?.root != null)
@@ -56,30 +67,49 @@ namespace Cook.Presentation
                     presentation.root.SetActive(presentation.station == activeStation);
                 }
             }
+        }
 
-            OperationRuntimeData operation = session?.CurrentOperation;
-            if (session?.State == CookingSessionState.OperationActive && operation?.Station == activeStation)
+        private void OnOperationInputStarted(OperationRuntimeData operation)
+        {
+            if (operation.AnimationMode == CookingAnimationMode.OneShot)
             {
-                SetTrigger(activeStation, operation.AnimatorStartTrigger);
+                SetTrigger(operation.Station, operation.AnimatorStartTrigger);
+                return;
+            }
+
+            if (sustainedOperation == operation) return;
+            StopSustained();
+            if (SetTrigger(operation.Station, operation.AnimatorStartTrigger))
+            {
+                sustainedOperation = operation;
             }
         }
 
-        private void OnOperationStarted(OperationRuntimeData operation, int index, int count)
+        private void OnOperationInputStopped(OperationRuntimeData operation)
         {
-            SetTrigger(operation.Station, operation.AnimatorStartTrigger);
+            if (sustainedOperation == operation) StopSustained();
         }
 
         private void OnOperationCompleted(OperationRuntimeData operation)
         {
-            if (operation.AnimationMode == CookingAnimationMode.Sustained)
-            {
-                SetTrigger(operation.Station, operation.AnimatorStopTrigger);
-            }
+            if (sustainedOperation == operation) StopSustained();
         }
 
-        private void SetTrigger(CookingStation station, string trigger)
+        private void OnStateChanged(CookingSessionState state)
         {
-            if (string.IsNullOrWhiteSpace(trigger)) return;
+            if (state != CookingSessionState.OperationActive) StopSustained();
+        }
+
+        private void StopSustained()
+        {
+            if (sustainedOperation == null) return;
+            SetTrigger(sustainedOperation.Station, sustainedOperation.AnimatorStopTrigger);
+            sustainedOperation = null;
+        }
+
+        private bool SetTrigger(CookingStation station, string trigger)
+        {
+            if (string.IsNullOrWhiteSpace(trigger)) return false;
             foreach (StationPresentation presentation in stations)
             {
                 if (presentation != null && presentation.station == station &&
@@ -87,9 +117,10 @@ namespace Cook.Presentation
                     presentation.animator.runtimeAnimatorController != null)
                 {
                     presentation.animator.SetTrigger(trigger);
-                    return;
+                    return true;
                 }
             }
+            return false;
         }
     }
 }

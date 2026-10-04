@@ -101,6 +101,28 @@ public sealed class CookingSessionTests
         Assert.That(session.CurrentOperationProgress01, Is.EqualTo(0.5f).Within(0.001f));
     }
 
+    [Test]
+    public void HoldInputEvents_StopOnReleaseAndStationChange()
+    {
+        CoreCookingSession session = StartSession(Round(
+            Hold("stir-hold", CookingOperationType.StirHold, CookingStation.SoupPot, 2f),
+            Short("stir", CookingOperationType.StirOnce, CookingStation.SoupPot)));
+        var events = new List<string>();
+        session.OperationInputStarted += operation => events.Add("start:" + operation.Id);
+        session.OperationInputStopped += operation => events.Add("stop:" + operation.Id);
+
+        session.PressCook();
+        session.PressCook();
+        session.ReleaseCook();
+        session.PressCook();
+        session.MoveStation(1);
+
+        Assert.That(events, Is.EqualTo(new[]
+        {
+            "start:stir-hold", "stop:stir-hold", "start:stir-hold", "stop:stir-hold"
+        }));
+    }
+
     [TestCase(0.84f, CookingGrade.Excellent)]
     [TestCase(0.95f, CookingGrade.Great)]
     [TestCase(1.20f, CookingGrade.Good)]

@@ -38,6 +38,8 @@ namespace Cook.Core
         public event Action<CookingSessionState> StateChanged;
         public event Action<CookingStation> StationChanged;
         public event Action<OperationRuntimeData, int, int> OperationStarted;
+        public event Action<OperationRuntimeData> OperationInputStarted;
+        public event Action<OperationRuntimeData> OperationInputStopped;
         public event Action<float> OperationProgressChanged;
         public event Action<OperationRuntimeData> OperationCompleted;
         public event Action InvalidInput;
@@ -71,6 +73,7 @@ namespace Cook.Core
             }
 
             // 离开工位只暂停长按，不清除已经累积的工序进度。
+            if (isHolding) OperationInputStopped?.Invoke(CurrentOperation);
             isHolding = false;
             currentStation = (CookingStation)next;
             StationChanged?.Invoke(currentStation);
@@ -92,13 +95,19 @@ namespace Cook.Core
             switch (CurrentOperation.InputMode)
             {
                 case CookingInputMode.ShortPress:
+                    OperationInputStarted?.Invoke(CurrentOperation);
                     AddOperationProgress(CurrentOperation.RequiredAmount);
                     break;
                 case CookingInputMode.RepeatedPress:
+                    OperationInputStarted?.Invoke(CurrentOperation);
                     AddOperationProgress(1f);
                     break;
                 case CookingInputMode.Hold:
-                    isHolding = true;
+                    if (!isHolding)
+                    {
+                        isHolding = true;
+                        OperationInputStarted?.Invoke(CurrentOperation);
+                    }
                     break;
             }
         }
@@ -106,9 +115,10 @@ namespace Cook.Core
         public void ReleaseCook()
         {
             if (state == CookingSessionState.OperationActive &&
-                CurrentOperation?.InputMode == CookingInputMode.Hold)
+                CurrentOperation?.InputMode == CookingInputMode.Hold && isHolding)
             {
                 isHolding = false;
+                OperationInputStopped?.Invoke(CurrentOperation);
             }
         }
 
