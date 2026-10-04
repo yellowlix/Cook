@@ -411,8 +411,15 @@ namespace Cook.Editor
         private static void CreateAnimatorController(IReadOnlyDictionary<string, AnimationClip> clips)
         {
             string path = $"{ControllersFolder}/CookingCharacter.controller";
-            DeleteIfExists(path);
-            AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(path);
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            if (controller == null)
+            {
+                controller = AnimatorController.CreateAnimatorControllerAtPath(path);
+            }
+            else
+            {
+                ClearAnimatorController(controller);
+            }
             AddTrigger(controller, "ChopOnce");
             AddTrigger(controller, "StirOnce");
             AddTrigger(controller, "PanFlipOnce");
@@ -432,7 +439,43 @@ namespace Cook.Editor
             AddSustained(machine, idle, clips, "CutRepeated", "ChopRepeatedStart", "ChopRepeatedStop");
             AddSustained(machine, idle, clips, "StirHold", "StirHoldStart", "StirHoldStop");
             AddSustained(machine, idle, clips, "PanFlipHold", "PanFlipHoldStart", "PanFlipHoldStop");
-            EditorUtility.SetDirty(controller);
+            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                EditorUtility.SetDirty(asset);
+            }
+            AssetDatabase.SaveAssetIfDirty(controller);
+            AssetDatabase.ForceReserializeAssets(new[] { path });
+        }
+
+        private static void ClearAnimatorController(AnimatorController controller)
+        {
+            for (int i = controller.parameters.Length - 1; i >= 0; i--)
+            {
+                controller.RemoveParameter(i);
+            }
+
+            if (controller.layers.Length == 0)
+            {
+                controller.AddLayer("Base Layer");
+            }
+
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            foreach (AnimatorStateTransition transition in machine.anyStateTransitions)
+            {
+                machine.RemoveAnyStateTransition(transition);
+            }
+            foreach (AnimatorTransition transition in machine.entryTransitions)
+            {
+                machine.RemoveEntryTransition(transition);
+            }
+            foreach (ChildAnimatorState childState in machine.states)
+            {
+                machine.RemoveState(childState.state);
+            }
+            foreach (ChildAnimatorStateMachine childMachine in machine.stateMachines)
+            {
+                machine.RemoveStateMachine(childMachine.stateMachine);
+            }
         }
 
         private static void AddTrigger(AnimatorController controller, string name)
