@@ -2,7 +2,8 @@
   "name": "Cook.Runtime",
   "references": [
     "Unity.InputSystem",
-    "UnityEngine.UI"
+    "UnityEngine.UI",
+    "Unity.TextMeshPro"
   ],
   "noEngineReferences": false,
   "autoReferenced": true

@@ -8,6 +8,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 using Cook.Presentation;
 using ConfigOperationDefinition = Cook.Configuration.OperationDefinition;
 using ConfigRecipeDefinition = Cook.Configuration.RecipeDefinition;
@@ -121,15 +122,15 @@ namespace Cook.Editor
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            Text sequence = CreateText(canvasObject.transform, "OperationSequenceText", 34, TextAnchor.MiddleCenter,
+            TMP_Text sequence = CreateText(canvasObject.transform, "OperationSequenceText", 34, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(1200f, 70f));
             Slider operationProgress = CreateSlider(canvasObject.transform, "OperationProgressSlider",
                 new Vector2(0.5f, 1f), new Vector2(0f, -125f), new Vector2(620f, 28f));
             Slider recipeProgress = CreateSlider(canvasObject.transform, "RecipeProgressSlider",
                 new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(900f, 34f));
-            Text grade = CreateText(canvasObject.transform, "GradeText", 54, TextAnchor.MiddleCenter,
+            TMP_Text grade = CreateText(canvasObject.transform, "GradeText", 54, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(600f, 90f));
-            Text result = CreateText(canvasObject.transform, "ResultText", 70, TextAnchor.MiddleCenter,
+            TMP_Text result = CreateText(canvasObject.transform, "ResultText", 70, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 110f));
 
             CookingHud hud = canvasObject.AddComponent<CookingHud>();
@@ -149,29 +150,28 @@ namespace Cook.Editor
             return hud;
         }
 
-        private static Text CreateText(
+        private static TMP_Text CreateText(
             Transform parent,
             string name,
             int fontSize,
-            TextAnchor alignment,
+            TextAlignmentOptions alignment,
             Vector2 anchorMin,
             Vector2 anchorMax,
             Vector2 position,
             Vector2 size)
         {
-            GameObject target = new GameObject(name, typeof(RectTransform), typeof(Text));
+            GameObject target = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             target.transform.SetParent(parent, false);
             RectTransform rect = target.GetComponent<RectTransform>();
             rect.anchorMin = anchorMin;
             rect.anchorMax = anchorMax;
             rect.anchoredPosition = position;
             rect.sizeDelta = size;
-            Text text = target.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            TMP_Text text = target.GetComponent<TMP_Text>();
             text.fontSize = fontSize;
             text.alignment = alignment;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.enableWordWrapping = false;
             text.text = string.Empty;
             return text;
         }

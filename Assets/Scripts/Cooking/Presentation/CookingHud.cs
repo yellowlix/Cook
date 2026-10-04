@@ -1,5 +1,6 @@
 using System.Text;
 using Cook.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using CoreCookingSession = Cook.Core.CookingSession;
@@ -9,11 +10,11 @@ namespace Cook.Presentation
     /// <summary>第一阶段占位 HUD，只消费状态机事件，不决定玩法流程。</summary>
     public sealed class CookingHud : MonoBehaviour
     {
-        [SerializeField] private Text operationSequenceText;
+        [SerializeField] private TMP_Text operationSequenceText;
         [SerializeField] private Slider operationProgressSlider;
         [SerializeField] private Slider recipeProgressSlider;
-        [SerializeField] private Text gradeText;
-        [SerializeField] private Text resultText;
+        [SerializeField] private TMP_Text gradeText;
+        [SerializeField] private TMP_Text resultText;
         private CoreCookingSession session;
 
         public void Bind(CoreCookingSession value)
@@ -99,7 +100,7 @@ namespace Cook.Presentation
             }
         }
 
-        private static void SetText(Text target, string value)
+        private static void SetText(TMP_Text target, string value)
         {
             if (target != null) target.text = value;
         }
