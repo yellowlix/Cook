@@ -63,7 +63,6 @@ namespace Cook.Editor
                 ConfigureStation(gameplay, "RightStation", "FryingPanStation", "FryingPanCharacter", CookingStation.FryingPan)
             };
 
-            RemovePracticeComponents(sceneRoot);
             var presenter = GetOrAdd<CookingAnimationPresenter>(gameplay.gameObject);
             presenter.ConfigureStations(stationPresentations);
             EditorUtility.SetDirty(presenter);
@@ -197,19 +196,6 @@ namespace Cook.Editor
             slider.value = 0f;
             slider.interactable = false;
             return slider;
-        }
-
-        private static void RemovePracticeComponents(GameObject root)
-        {
-            foreach (MonoBehaviour behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
-            {
-                if (behaviour == null) continue;
-                string typeName = behaviour.GetType().FullName;
-                if (typeName == "CookingController" || typeName == "InputController")
-                {
-                    Object.DestroyImmediate(behaviour);
-                }
-            }
         }
 
         private static T GetOrAdd<T>(GameObject target) where T : Component
