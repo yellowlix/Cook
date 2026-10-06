@@ -150,7 +150,7 @@ namespace Cook.Editor
             PlaceText(data, "operationSequenceText", "OperationSequenceText", new Vector2(0, 205), new Vector2(950, 140), 26);
             PlaceText(data, "actualStepsText", "ActualStepsText", new Vector2(0, 110), new Vector2(1000, 60), 24);
             PlaceText(data, "roundCountdownText", "RoundCountdownText", new Vector2(0, 60), new Vector2(400, 45), 26);
-            PlaceText(data, "resultText", "ResultText", new Vector2(0, 90), new Vector2(800, 65), 30);
+            PlaceText(data, "resultText", "ResultText", new Vector2(0, 20), new Vector2(800, 65), 30);
         }
 
         private static void PlaceText(SerializedObject data, string property, string name, Vector2 position, Vector2 size, int fontSize)

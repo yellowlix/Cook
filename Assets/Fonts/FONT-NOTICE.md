@@ -17,3 +17,7 @@ https://github.com/google/fonts/tree/main/ofl/notosanssc
 The TextMeshPro atlas uses dynamic population, so new UI copy using these
 characters does not require regenerating the TTF. Only characters outside
 this basic set require expanding the subset or a fallback font.
+
+The production UI also includes U+2192 (right arrow) and U+7827 (砧).
+The subset was expanded with these two characters on 2026-10-06 using the
+same Google Fonts source, instantiated at weight 400.
