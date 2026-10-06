@@ -36,6 +36,8 @@ namespace Cook.Presentation
             foreach (Button row in rows) Destroy(row.gameObject);
             rows.Clear(); selected.Clear(); ready = false;
             titleText.text = "售卖选菜";
+            statusText.rectTransform.anchoredPosition = new Vector2(0, -150);
+            statusText.rectTransform.sizeDelta = new Vector2(620, 170);
             content.gameObject.SetActive(true);
             confirmButton.gameObject.SetActive(true);
             for (int i = 0; i < items.Count; i++)
@@ -71,6 +73,8 @@ namespace Cook.Presentation
         {
             ready = true;
             titleText.text = "售卖准备";
+            statusText.rectTransform.anchoredPosition = Vector2.zero;
+            statusText.rectTransform.sizeDelta = new Vector2(620, 400);
             content.gameObject.SetActive(false);
             confirmButton.gameObject.SetActive(false);
             var text = new StringBuilder("待售菜品：\n");

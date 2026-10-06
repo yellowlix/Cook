@@ -39,7 +39,7 @@ namespace Cook
                 enabled = false;
                 return;
             }
-            if (catalog != null)
+            if (catalog != null && catalog.Dishes != null)
             {
                 var ids = new HashSet<string>();
                 foreach (DishDefinition candidate in catalog.Dishes)
