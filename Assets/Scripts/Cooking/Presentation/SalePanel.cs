@@ -38,7 +38,7 @@ namespace Cook.Presentation
             titleText.text = "售卖选菜";
             statusText.rectTransform.anchoredPosition = new Vector2(0, -150);
             statusText.rectTransform.sizeDelta = new Vector2(620, 170);
-            content.gameObject.SetActive(true);
+            content.parent.gameObject.SetActive(true);
             confirmButton.gameObject.SetActive(true);
             for (int i = 0; i < items.Count; i++)
             {
@@ -75,7 +75,7 @@ namespace Cook.Presentation
             titleText.text = "售卖准备";
             statusText.rectTransform.anchoredPosition = Vector2.zero;
             statusText.rectTransform.sizeDelta = new Vector2(620, 400);
-            content.gameObject.SetActive(false);
+            content.parent.gameObject.SetActive(false);
             confirmButton.gameObject.SetActive(false);
             var text = new StringBuilder("待售菜品：\n");
             foreach (StoredDish item in items) text.Append("• ").Append(item.Result.Dish.DisplayName).Append('\n');

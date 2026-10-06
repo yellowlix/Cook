@@ -103,7 +103,7 @@ namespace Cook.Editor
         private static RectTransform Panel(string name, Transform parent, Vector2 size)
         {
             RectTransform root = Rect(name, parent, Vector2.zero, size);
-            root.gameObject.AddComponent<Image>().color = new Color(0.10f, 0.14f, 0.19f, 0.98f);
+            root.gameObject.AddComponent<Image>().color = new Color(0.10f, 0.14f, 0.19f, 1f);
             return root;
         }
 
