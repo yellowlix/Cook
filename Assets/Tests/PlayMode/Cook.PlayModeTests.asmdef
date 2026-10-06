@@ -1,6 +1,11 @@
 {
   "name": "Cook.PlayModeTests",
-  "references": ["Cook.Runtime"],
-  "optionalUnityReferences": ["TestAssemblies"],
+  "references": [
+    "Cook.Runtime",
+    "Unity.InputSystem"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
   "autoReferenced": false
 }

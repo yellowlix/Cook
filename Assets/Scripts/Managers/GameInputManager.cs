@@ -11,6 +11,8 @@ namespace Cook.Managers
         private readonly CookInputActions actions;
         private readonly OperationInput recognition;
         private bool enabled;
+        private bool requested;
+        private bool focused = true;
         private bool disposed;
 
         public GameInputManager(float clickInterval)
@@ -33,9 +35,22 @@ namespace Cook.Managers
 
         public void SetGameplayEnabled(bool value)
         {
-            if (disposed || enabled == value) return;
-            enabled = value;
-            if (value) actions.Player.Enable();
+            requested = value;
+            ApplyEnabled();
+        }
+
+        public void SetFocused(bool value)
+        {
+            focused = value;
+            ApplyEnabled();
+        }
+
+        private void ApplyEnabled()
+        {
+            bool next = requested && focused;
+            if (disposed || enabled == next) return;
+            enabled = next;
+            if (enabled) actions.Player.Enable();
             else actions.Player.Disable();
             recognition.Reset();
         }

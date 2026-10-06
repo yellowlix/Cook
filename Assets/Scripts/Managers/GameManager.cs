@@ -1,4 +1,5 @@
 using UnityEngine;
+using Cook.Core;
 
 namespace Cook.Managers
 {
@@ -46,20 +47,29 @@ namespace Cook.Managers
 
         private void OnEnable()
         {
-            if (Instance == this) Input?.SetGameplayEnabled(focused);
+            if (Instance != this) return;
+            Input?.SetFocused(focused);
+            Events?.Subscribe<ProductionStarted>(OnProductionStarted);
+            Events?.Subscribe<OperationPerformed>(OnOperationPerformed);
+            Events?.Subscribe<ProductionFinished>(OnProductionFinished);
         }
 
-        private void Update() => Input?.Tick(Time.unscaledDeltaTime);
+        // 场景先推进制作计时并清理跨工序输入，再确认本帧输入。
+        private void LateUpdate() => Input?.Tick(Time.deltaTime);
 
         private void OnApplicationFocus(bool value)
         {
             focused = value;
-            if (Instance == this && isActiveAndEnabled) Input?.SetGameplayEnabled(value);
+            if (Instance == this && isActiveAndEnabled) Input?.SetFocused(value);
         }
 
         private void OnDisable()
         {
-            if (Instance == this) Input?.SetGameplayEnabled(false);
+            if (Instance != this) return;
+            Input?.SetFocused(false);
+            Events?.Unsubscribe<ProductionStarted>(OnProductionStarted);
+            Events?.Unsubscribe<OperationPerformed>(OnOperationPerformed);
+            Events?.Unsubscribe<ProductionFinished>(OnProductionFinished);
         }
 
         private void OnDestroy()
@@ -79,5 +89,9 @@ namespace Cook.Managers
             source.spatialBlend = 0f;
             return source;
         }
+
+        private void OnProductionStarted(ProductionStarted message) => Audio.PlayUIEffect(buttonSound);
+        private void OnOperationPerformed(OperationPerformed message) => Audio.PlaySceneEffect(operationSound);
+        private void OnProductionFinished(ProductionFinished message) => Audio.PlaySceneEffect(completionSound);
     }
 }
