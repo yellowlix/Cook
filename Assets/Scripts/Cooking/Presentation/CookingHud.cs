@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using Cook.Core;
+using Cook.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,7 +10,7 @@ using CoreCookingSession = Cook.Core.CookingSession;
 namespace Cook.Presentation
 {
     /// <summary>第一阶段占位 HUD，只消费状态机事件，不决定玩法流程。</summary>
-    public sealed class CookingHud : MonoBehaviour
+    public sealed class CookingHud : BasePanel
     {
         [SerializeField] private TMP_Text operationSequenceText;
         [SerializeField] private GameObject operationProgressBar;

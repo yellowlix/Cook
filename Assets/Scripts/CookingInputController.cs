@@ -1,8 +1,7 @@
 using Cook.Core;
-using Cook.Input;
+using Cook.Managers;
 using Cook.Presentation;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using ConfigRecipeDefinition = Cook.Configuration.RecipeDefinition;
 using CoreCookingSession = Cook.Core.CookingSession;
 
@@ -17,7 +16,8 @@ namespace Cook
         [SerializeField] private CookingHud hud;
         [SerializeField, Min(0f)] private float roundResultDisplaySeconds = 0.75f;
 
-        private CookInputActions inputs;
+        private GameManager managers;
+        private GameInputManager inputs;
         private RecipeRuntimeData runtimeRecipe;
         private CoreCookingSession session;
         private float resultElapsed;
@@ -26,15 +26,22 @@ namespace Cook
 
         private void Awake()
         {
-            inputs = new CookInputActions();
+            managers = GameManager.Instance;
+            if (managers == null)
+            {
+                Debug.LogError("GameScene requires a GameManager entry", this);
+                enabled = false;
+                return;
+            }
+            inputs = managers.Input;
         }
 
         private void OnEnable()
         {
-            inputs.Player.ChangeStation.performed += OnChangeStation;
-            inputs.Player.Cook.performed += OnCookPressed;
-            inputs.Player.Cook.canceled += OnCookReleased;
-            inputs.Player.Enable();
+            if (inputs == null) return;
+            inputs.StationChangeRequested += OnChangeStation;
+            inputs.CookPressed += OnCookPressed;
+            inputs.CookReleased += OnCookReleased;
         }
 
         private void Start()
@@ -62,15 +69,22 @@ namespace Cook
 
             hud.StartRequested += StartRun;
             hud.RestartRequested += StartRun;
+            managers.UI.Register(hud);
+            managers.UI.Show<CookingHud>();
             hud.ShowReady();
         }
 
         private void StartRun()
         {
             if (runtimeRecipe == null) return;
+            inputs.ResetOperation();
+            managers.Audio.PlayUIEffect(managers.ButtonSound);
+            UnbindSessionAudio();
             animationPresenter?.Unbind();
             hud?.Unbind();
             session = new CoreCookingSession();
+            session.OperationCompleted += OnOperationCompleted;
+            session.RecipeSucceeded += OnRecipeSucceeded;
             animationPresenter?.Bind(session);
             hud?.Bind(session);
             resultElapsed = 0f;
@@ -97,10 +111,11 @@ namespace Cook
 
         private void OnDisable()
         {
-            inputs.Player.ChangeStation.performed -= OnChangeStation;
-            inputs.Player.Cook.performed -= OnCookPressed;
-            inputs.Player.Cook.canceled -= OnCookReleased;
-            inputs.Player.Disable();
+            if (inputs == null) return;
+            inputs.StationChangeRequested -= OnChangeStation;
+            inputs.CookPressed -= OnCookPressed;
+            inputs.CookReleased -= OnCookReleased;
+            inputs.ResetOperation();
         }
 
         private void OnDestroy()
@@ -112,16 +127,29 @@ namespace Cook
             }
             animationPresenter?.Unbind();
             hud?.Unbind();
-            inputs?.Dispose();
+            UnbindSessionAudio();
+            if (managers != null) managers.UI.Unregister(hud);
         }
 
-        private void OnChangeStation(InputAction.CallbackContext context)
+        private void OnChangeStation(int direction)
         {
-            float axis = context.ReadValue<float>();
-            if (Mathf.Abs(axis) >= 0.5f) session?.MoveStation(axis < 0f ? -1 : 1);
+            session?.MoveStation(direction);
         }
 
-        private void OnCookPressed(InputAction.CallbackContext context) => session?.PressCook();
-        private void OnCookReleased(InputAction.CallbackContext context) => session?.ReleaseCook();
+        private void OnCookPressed() => session?.PressCook();
+        private void OnCookReleased() => session?.ReleaseCook();
+
+        private void OnOperationCompleted(OperationRuntimeData operation)
+            => managers.Audio.PlaySceneEffect(managers.OperationSound);
+
+        private void OnRecipeSucceeded()
+            => managers.Audio.PlaySceneEffect(managers.CompletionSound);
+
+        private void UnbindSessionAudio()
+        {
+            if (session == null) return;
+            session.OperationCompleted -= OnOperationCompleted;
+            session.RecipeSucceeded -= OnRecipeSucceeded;
+        }
     }
 }
