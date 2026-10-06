@@ -19,6 +19,7 @@ namespace Cook.Managers
         public GameInputManager Input { get; private set; }
         public GameUIManager UI { get; private set; }
         public GameAudioManager Audio { get; private set; }
+        public EventManager Events { get; private set; }
         public AudioClip ButtonSound => buttonSound;
         public AudioClip OperationSound => operationSound;
         public AudioClip CompletionSound => completionSound;
@@ -36,6 +37,7 @@ namespace Cook.Managers
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            Events = new EventManager();
             Input = new GameInputManager(clickInterval);
             UI = new GameUIManager();
             Audio = new GameAudioManager(PrepareSource(ref bgmSource),
@@ -66,6 +68,7 @@ namespace Cook.Managers
             Input?.Dispose();
             UI?.Clear();
             Audio?.StopAll();
+            Events?.Clear();
             Instance = null;
         }
 
