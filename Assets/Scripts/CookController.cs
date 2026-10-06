@@ -2,6 +2,7 @@ using Cook.Configuration;
 using Cook.Core;
 using Cook.Managers;
 using Cook.Presentation;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Cook
@@ -12,34 +13,51 @@ namespace Cook
         [SerializeField] private DishDefinition dish;
         [SerializeField] private ProductionStation startingStation = ProductionStation.SoupPot;
         [SerializeField] private CookHud hud;
+        [SerializeField] private DishCatalogDefinition catalog;
+        [SerializeField] private MenuPanel menu;
+        [SerializeField] private SalePanel sale;
         private GameManager managers;
         private DishRuntimeData runtimeDish;
         private int observedRunIndex;
+        private readonly List<DishDefinition> availableDishes = new List<DishDefinition>();
+        private IReadOnlyList<StoredDish> saleDishes = new List<StoredDish>().AsReadOnly();
 
         public ProductionSession Session { get; private set; }
         public ProductionStation Station { get; private set; }
+        public ShopPhase Phase { get; private set; } = ShopPhase.Production;
+        public DishDefinition SelectedDish => dish;
+        public IReadOnlyList<DishDefinition> AvailableDishes => availableDishes.AsReadOnly();
+        public IReadOnlyList<StoredDish> SaleDishes => saleDishes;
+        public ProductionResult PendingResult { get; private set; }
 
         private void Awake()
         {
             managers = GameManager.Instance;
-            if (managers == null || dish == null)
+            if (managers == null)
             {
-                Debug.LogError("CookController requires a GameManager and DishDefinition", this);
+                Debug.LogError("CookController requires a GameManager", this);
                 enabled = false;
                 return;
             }
-            if (!dish.TryBuildRuntime(out runtimeDish, out string error))
+            if (catalog != null)
             {
-                Debug.LogError(error, this);
-                enabled = false;
-                return;
+                var ids = new HashSet<string>();
+                foreach (DishDefinition candidate in catalog.Dishes)
+                {
+                    if (candidate == null) continue;
+                    if (!candidate.TryBuildRuntime(out DishRuntimeData data, out string error))
+                    { Debug.LogWarning(error, candidate); continue; }
+                    if (ids.Add(data.Id)) availableDishes.Add(candidate);
+                }
             }
+            if (!availableDishes.Contains(dish)) dish = availableDishes.Count > 0 ? availableDishes[0] : null;
+            if (dish != null) dish.TryBuildRuntime(out runtimeDish, out _);
             Station = startingStation;
         }
 
         private void OnEnable()
         {
-            if (managers == null || runtimeDish == null) return;
+            if (managers == null) return;
             managers.Input.SetGameplayEnabled(false);
             managers.Input.StationChangeRequested += ChangeStation;
             managers.Input.CookPressed += OnPressed;
@@ -49,8 +67,21 @@ namespace Cook
             if (hud != null)
             {
                 managers.UI.Register(hud);
-                hud.StartRequested += StartProduction;
-                hud.RestartRequested += StartProduction;
+                hud.StartRequested += OpenMenu;
+                hud.RestartRequested += RestartProduction;
+                hud.MenuRequested += OpenMenu;
+                hud.SaleRequested += EnterSaleSelection;
+            }
+            if (menu != null)
+            {
+                managers.UI.Register(menu);
+                menu.DishSelected += MakeSelectedDish;
+            }
+            if (sale != null)
+            {
+                managers.UI.Register(sale);
+                sale.SelectionConfirmed += ConfirmSale;
+                sale.BackRequested += ReturnToProduction;
             }
         }
 
@@ -62,11 +93,30 @@ namespace Cook
                 hud.ShowReady();
             }
             managers.Events.Publish(new StationChanged(Station));
+            if (menu != null) menu.Hide();
+            if (sale != null) sale.Hide();
+            OpenMenu();
         }
 
         public void StartProduction()
         {
-            if (!isActiveAndEnabled || runtimeDish == null) return;
+            if (Session?.State == ProductionState.Active) return;
+            BeginProduction();
+        }
+
+        public void RestartProduction()
+        {
+            if (Session?.State != ProductionState.Active) return;
+            BeginProduction();
+        }
+
+        private void BeginProduction()
+        {
+            if (!isActiveAndEnabled || Phase != ShopPhase.Production) return;
+            if (PendingResult != null || managers.Inventory.IsFull)
+            { Notify("库存已满，请进入售卖"); return; }
+            if (dish == null || !dish.TryBuildRuntime(out runtimeDish, out string error))
+            { Notify("未选择有效菜品"); return; }
             CancelProduction();
             DetachSession();
             Session = new ProductionSession(runtimeDish);
@@ -75,10 +125,78 @@ namespace Cook
             Session.Completed += OnCompleted;
             managers.Input.ResetOperation();
             managers.Input.SetGameplayEnabled(true);
+            menu?.Hide();
             managers.Events.Publish(new ProductionStarted(Session));
             managers.Events.Publish(new StationChanged(Station));
             OnSessionChanged();
         }
+
+        public void OpenMenu()
+        {
+            if (Phase != ShopPhase.Production || menu == null) return;
+            menu.Configure(AvailableDishes, dish, Session?.State == ProductionState.Active,
+                managers.Inventory.IsFull || PendingResult != null);
+            managers.UI.Show<MenuPanel>();
+        }
+
+        public void MakeSelectedDish(DishDefinition selected)
+        {
+            if (Phase != ShopPhase.Production || !availableDishes.Contains(selected)) return;
+            if (managers.Inventory.IsFull || PendingResult != null)
+            { Notify("库存已满，请进入售卖"); return; }
+            if (selected == null || !selected.TryBuildRuntime(out _, out string error))
+            { Notify("菜品配置无效"); return; }
+            // 菜单确认按钮明确告知：此请求会取消正在制作的菜品。
+            CancelProduction();
+            dish = selected;
+            BeginProduction();
+        }
+
+        public void EnterSaleSelection()
+        {
+            if (Phase != ShopPhase.Production || sale == null) return;
+            if (PendingResult != null) { Notify("成品尚未入库，暂不能离开"); return; }
+            if (managers.Inventory.Items.Count == 0) { Notify("库存为空，请先制作菜品"); return; }
+            CancelProduction();
+            menu?.Hide();
+            SetPhase(ShopPhase.SaleSelection);
+            sale.Configure(managers.Inventory.Items);
+            managers.UI.Show<SalePanel>();
+        }
+
+        public void ConfirmSale(IReadOnlyList<string> ids)
+        {
+            if (Phase != ShopPhase.SaleSelection || ids == null || ids.Count < 1 || ids.Count > 3) return;
+            var selection = new List<StoredDish>();
+            var unique = new HashSet<string>();
+            foreach (string id in ids)
+            {
+                StoredDish item = managers.Inventory.Find(id);
+                if (item == null || !unique.Add(id)) return;
+                selection.Add(item);
+            }
+            saleDishes = selection.AsReadOnly();
+            SetPhase(ShopPhase.SaleReady);
+            sale.ShowReady(saleDishes);
+        }
+
+        public void ReturnToProduction()
+        {
+            if (Phase == ShopPhase.Production) return;
+            saleDishes = new List<StoredDish>().AsReadOnly();
+            sale?.Hide();
+            SetPhase(ShopPhase.Production);
+            hud?.ShowReady();
+            OpenMenu();
+        }
+
+        private void SetPhase(ShopPhase phase)
+        {
+            Phase = phase;
+            managers.Events.Publish(new ShopPhaseChanged(phase));
+        }
+
+        private void Notify(string message) => hud?.ShowMessage(message);
 
         public void CancelProduction()
         {
@@ -118,10 +236,23 @@ namespace Cook
             }
             if (Session.State != ProductionState.Active) managers.Input.SetGameplayEnabled(false);
             managers.Events.Publish(new ProductionChanged(Session));
+            if (menu != null && menu.IsShow)
+                menu.SetAvailability(Session.State == ProductionState.Active, managers.Inventory.IsFull || PendingResult != null);
         }
 
         private void OnCompleted(ProductionResult result)
-            => managers.Events.Publish(new ProductionFinished(result));
+        {
+            PendingResult = result;
+            if (managers.Inventory.TryAdd(result, out StoredDish stored))
+            {
+                PendingResult = null;
+                managers.Events.Publish(new InventoryChanged());
+                Notify(managers.Inventory.IsFull ? "制作完成，库存已满，请进入售卖" : "制作完成，已入库");
+            }
+            else Notify("库存已满，成品保留待入库");
+            managers.Events.Publish(new ProductionFinished(result));
+            if (menu != null && menu.IsShow) menu.SetAvailability(false, managers.Inventory.IsFull || PendingResult != null);
+        }
 
         private void OnPressed()
         {
@@ -145,9 +276,18 @@ namespace Cook
             managers.Input.ProgressChanged -= OnInputProgress;
             if (hud != null)
             {
-                hud.StartRequested -= StartProduction;
-                hud.RestartRequested -= StartProduction;
+                hud.StartRequested -= OpenMenu;
+                hud.RestartRequested -= RestartProduction;
+                hud.MenuRequested -= OpenMenu;
+                hud.SaleRequested -= EnterSaleSelection;
                 managers.UI.Unregister(hud);
+            }
+            if (menu != null) { menu.DishSelected -= MakeSelectedDish; managers.UI.Unregister(menu); }
+            if (sale != null)
+            {
+                sale.SelectionConfirmed -= ConfirmSale;
+                sale.BackRequested -= ReturnToProduction;
+                managers.UI.Unregister(sale);
             }
         }
 

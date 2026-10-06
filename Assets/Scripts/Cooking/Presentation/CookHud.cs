@@ -22,17 +22,25 @@ namespace Cook.Presentation
         [SerializeField] private TMP_Text roundCountdownText;
         [SerializeField] private Button startButton;
         [SerializeField] private Button restartButton;
+        [SerializeField] private Button menuButton;
+        [SerializeField] private Button saleButton;
+        [SerializeField] private TMP_Text inventoryText;
         private EventManager events;
         private ProductionSession session;
         private ProductionStation station;
+        private ShopPhase phase;
 
         public event Action StartRequested;
         public event Action RestartRequested;
+        public event Action MenuRequested;
+        public event Action SaleRequested;
 
         private void Awake()
         {
             if (startButton != null) startButton.onClick.AddListener(RequestStart);
             if (restartButton != null) restartButton.onClick.AddListener(RequestRestart);
+            if (menuButton != null) menuButton.onClick.AddListener(RequestMenu);
+            if (saleButton != null) saleButton.onClick.AddListener(RequestSale);
         }
 
         private void OnEnable()
@@ -43,6 +51,9 @@ namespace Cook.Presentation
             events.Subscribe<ProductionChanged>(OnChanged);
             events.Subscribe<StationChanged>(OnStation);
             events.Subscribe<OperationInputProgress>(OnProgress);
+            events.Subscribe<InventoryChanged>(OnInventory);
+            events.Subscribe<ShopPhaseChanged>(OnPhase);
+            RefreshInventory();
         }
 
         private void OnDisable()
@@ -52,6 +63,8 @@ namespace Cook.Presentation
             events.Unsubscribe<ProductionChanged>(OnChanged);
             events.Unsubscribe<StationChanged>(OnStation);
             events.Unsubscribe<OperationInputProgress>(OnProgress);
+            events.Unsubscribe<InventoryChanged>(OnInventory);
+            events.Unsubscribe<ShopPhaseChanged>(OnPhase);
             events = null;
         }
 
@@ -59,6 +72,8 @@ namespace Cook.Presentation
         {
             if (startButton != null) startButton.onClick.RemoveListener(RequestStart);
             if (restartButton != null) restartButton.onClick.RemoveListener(RequestRestart);
+            if (menuButton != null) menuButton.onClick.RemoveListener(RequestMenu);
+            if (saleButton != null) saleButton.onClick.RemoveListener(RequestSale);
         }
 
         public void ShowReady()
@@ -73,6 +88,31 @@ namespace Cook.Presentation
             SetProgress(recipeProgressFill, 0f);
             SetProgress(operationProgressFill, 0f);
             if (operationProgressBar != null) operationProgressBar.SetActive(false);
+            RefreshInventory();
+        }
+
+        public void ShowMessage(string message) => SetText(resultText, message);
+        private void RequestMenu() => MenuRequested?.Invoke();
+        private void RequestSale() => SaleRequested?.Invoke();
+        private void OnInventory(InventoryChanged message) => RefreshInventory();
+        private void OnPhase(ShopPhaseChanged message)
+        {
+            phase = message.Phase;
+            Render();
+            RefreshInventory();
+        }
+        private void RefreshInventory()
+        {
+            InventoryManager inventory = GameManager.Instance?.Inventory;
+            if (inventory == null) return;
+            SetText(inventoryText, $"成品库存 {inventory.Items.Count}/{InventoryManager.Capacity}");
+            bool production = phase == ShopPhase.Production;
+            if (startButton != null) startButton.interactable = production && !inventory.IsFull;
+            if (restartButton != null) restartButton.interactable = production && !inventory.IsFull;
+            if (menuButton != null) menuButton.interactable = production;
+            if (saleButton != null) saleButton.interactable = production && inventory.Items.Count > 0;
+            if (saleButton != null) saleButton.GetComponentInChildren<TMP_Text>().text = session?.State == ProductionState.Active
+                ? "取消制作并售卖" : "进入售卖";
         }
 
         private void RequestStart() => StartRequested?.Invoke();
@@ -106,8 +146,9 @@ namespace Cook.Presentation
         {
             if (session == null) return;
             bool active = session.State == ProductionState.Active;
-            SetVisible(startButton, !active);
-            SetVisible(restartButton, active);
+            SetVisible(startButton, !active && phase == ShopPhase.Production);
+            SetVisible(restartButton, active && phase == ShopPhase.Production);
+            RefreshInventory();
             SetText(roundCountdownText, active ? $"工序剩余 {session.RemainingTime:0.0}s" : string.Empty);
             if (active)
             {

@@ -21,6 +21,7 @@ namespace Cook.Managers
         public GameUIManager UI { get; private set; }
         public GameAudioManager Audio { get; private set; }
         public EventManager Events { get; private set; }
+        public InventoryManager Inventory { get; private set; }
         public AudioClip ButtonSound => buttonSound;
         public AudioClip OperationSound => operationSound;
         public AudioClip CompletionSound => completionSound;
@@ -39,6 +40,7 @@ namespace Cook.Managers
             Instance = this;
             DontDestroyOnLoad(gameObject);
             Events = new EventManager();
+            Inventory = new InventoryManager();
             Input = new GameInputManager(clickInterval);
             UI = new GameUIManager();
             Audio = new GameAudioManager(PrepareSource(ref bgmSource),
